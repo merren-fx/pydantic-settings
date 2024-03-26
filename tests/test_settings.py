@@ -2364,3 +2364,28 @@ def test_nested_models_as_dict_value(env):
     env.set('sub_dict__bar__foo', '{"b": 2}')
     s = Settings()
     assert s.model_dump() == {'nested': {'foo': {'a': 1}}, 'sub_dict': {'bar': {'foo': {'b': 2}}}}
+
+
+@pytest.mark.parametrize("key,value",[
+    ('sub_dict', '{}'),
+    ('sub_dict', '"bar": {}'),
+    ('sub_dict', '"bar": {{"foo": { }}}'),
+    ('sub_dict__bar', '{"foo": { }}'),
+    ('sub_dict__bar', '{"foo": {"b": "asd"}}'),
+    ('sub_dict__bar__foo', '{}'),
+    ('sub_dict__bar__foo', '{"b": 1}'),
+    ('sub_dict__bar__foo__b', '1'),
+    ])
+def test_nested_models_as_dict_value_insert_key(key,value, env):
+    class NestedSettings(BaseModel):
+        foo: Dict[str, int] = {}
+
+    class Settings(BaseSettings):
+        nested: NestedSettings = NestedSettings()
+        sub_dict: Dict[str, NestedSettings] = {}
+
+        model_config = SettingsConfigDict(env_nested_delimiter='__')
+    env.set(key,value)
+    env.set('sub_dict__bar__foo', '{"b": 2}')
+    s = Settings()
+    assert s.model_dump() == {'nested': {'foo': {}}, 'sub_dict': {'bar': {'foo': {'b': 2}}}}
